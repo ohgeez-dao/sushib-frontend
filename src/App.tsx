@@ -13,10 +13,12 @@ const getContract = (signer: Signer) => {
 function App() {
   const context = useEthereum();
   const [checking, setChecking] = useState(false);
+  const [zeroAmount, setZeroAmount] = useState(false);
   const [txHash, setTxHash] = useState("");
   const [error, setError] = useState("");
   const onClaim = async () => {
     setChecking(true);
+    setZeroAmount(false);
     setTxHash("");
     setError("");
     if (context.signer) {
@@ -25,6 +27,10 @@ function App() {
         const res = await fetch(SERVER_URL + "/snapshot/" + signature);
         const json = await res.json();
         const contract = getContract(context.signer);
+        if (json.amount == "0") {
+          setZeroAmount(true);
+          return true;
+        }
         const tx = await contract.claim(
           json.account,
           json.amount,
@@ -51,7 +57,11 @@ function App() {
     <div className="App">
       <header className="App-header">
         <div>🍣SUSHI 1:1 🐶SUSHIB</div>
-        {checking ? (
+        {zeroAmount ? (
+          <button className="App-button" disabled={true}>
+            You didn't have $SUSHI at snapshot
+          </button>
+        ) : checking ? (
           <button className="App-button" disabled={true}>
             Checking...
           </button>

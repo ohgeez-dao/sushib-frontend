@@ -35,6 +35,7 @@
 
 button:disabled {
   cursor: default;
+  color: #333333;
 }
 
 .App-result {
