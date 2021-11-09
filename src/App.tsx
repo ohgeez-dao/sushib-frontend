@@ -80,8 +80,8 @@ function App() {
         )}
         <div className={"description"}>
           You should have held $SUSHI at{" "}
-          <a href={"https://etherscan.io/block/13556474"} target={"_blank"}>
-            block 13,556,474
+          <a href={"https://etherscan.io/block/13553257"} target={"_blank"}>
+            block 13,553,257
           </a>{" "}
           for claiming $SUSHIB
         </div>
