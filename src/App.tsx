@@ -1,86 +1,81 @@
-import { ethers } from "ethers";
-import React, { useEffect, useState } from "react";
-import { MerkleTree } from "merkletreejs";
-import keccak256 from "keccak256";
-import detectEthereumProvider from "@metamask/detect-provider";
-
-import logo from "./morty.png";
+import { ContractFactory, Signer } from "ethers";
+import React, { useState } from "react";
 import abi from "./abi.json";
-import accounts from "./oh-geez.json";
-import "./App.css";
 
-const leaves = accounts.map((v) => keccak256(v));
-const tree = new MerkleTree(leaves, keccak256, { sort: true });
+import "./App.css";
+import { AUTH_MESSAGE, SERVER_URL, SUSHIB } from "./constants";
+import useEthereum from "./hooks/useEthereum";
+
+const getContract = (signer: Signer) => {
+  return ContractFactory.getContract(SUSHIB, abi, signer);
+};
 
 function App() {
-  const [address, setAddress] = useState("");
-  const [provider, setProvider] = useState();
-
-  useEffect(() => {
-    detectEthereumProvider().then((p) => {
-      setProvider(p);
-      if (!p) alert("Please install MetaMask!");
-    });
-  }, []);
-  const onConnect = () => {
-    provider
-      .request({ method: "eth_requestAccounts" })
-      .then((accounts) => setAddress(accounts[0]))
-      .catch((e) => {
-        console.error(e);
-        alert(e.message);
-      });
-  };
-  const onClick = () => {
-    if (address) {
-      const leaf = keccak256(address);
-      const proof = tree.getHexProof(leaf);
-      const signer = new ethers.providers.Web3Provider(provider).getSigner();
-      const contract = ethers.ContractFactory.getContract(
-        "0x1098269bFc70b26DeA43f18F812D2b9854E874bA",
-        abi,
-        signer
-      );
-      contract
-        .claim(proof.map((item) => ethers.utils.arrayify(item)))
-        .then((tx) =>
-          tx
-            .wait()
-            .then(() => alert("Claimed!"))
-            .catch((e) => {
-              alert(e.message);
-              console.error(e);
-            })
-        )
-        .catch((e) => {
-          alert(e.message);
-          console.error(e);
-        });
+  const context = useEthereum();
+  const [checking, setChecking] = useState(false);
+  const [txHash, setTxHash] = useState("");
+  const [error, setError] = useState("");
+  const onClaim = async () => {
+    setChecking(true);
+    setTxHash("");
+    setError("");
+    if (context.signer) {
+      try {
+        const signature = await context.signer.signMessage(AUTH_MESSAGE);
+        const res = await fetch(SERVER_URL + "/snapshot/" + signature);
+        const json = await res.json();
+        const contract = getContract(context.signer);
+        const tx = await contract.claim(
+          json.account,
+          json.amount,
+          json.v,
+          json.r,
+          json.s,
+          context.address
+        );
+        setTxHash(tx.hash);
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setChecking(false);
+      }
+    } else {
+      setError("Metamask not connected");
     }
     return true;
   };
+  const onViewTx = (txHash: string) => () =>
+    window.open("https://etherscan.io/tx/" + txHash, "_blank");
 
   return (
     <div className="App">
       <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        {provider?.isConnected() && address ? (
-          <>
-            <input
-              value={address}
-              type={"text"}
-              readOnly={true}
-              className={"App-input"}
-            />
-            <button className="App-button" onClick={onClick}>
-              Claim
-            </button>
-          </>
+        <div>🍣SUSHI 1:1 🐶SUSHIB</div>
+        {checking ? (
+          <button className="App-button" disabled={true}>
+            Checking...
+          </button>
+        ) : txHash ? (
+          <button className="App-button" onClick={onViewTx(txHash)}>
+            View Transaction
+          </button>
+        ) : context.isConnected && context.address ? (
+          <button className="App-button" onClick={onClaim}>
+            Claim
+          </button>
         ) : (
-          <button className="App-button" onClick={onConnect}>
-            Connect
+          <button className="App-button" onClick={context.onConnect}>
+            Connect Wallet
           </button>
         )}
+        <div className={"description"}>
+          You should have held $SUSHI at{" "}
+          <a href={"https://etherscan.io/block/13556474"} target={"_blank"}>
+            block 13,556,474
+          </a>{" "}
+          for claiming $SUSHIB
+        </div>
+        <div className={"error"}>{error || " "}</div>
       </header>
     </div>
   );

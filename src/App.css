@@ -3,12 +3,13 @@
 }
 
 .App-logo {
-  height: 40vmin;
+  width: 1000px;
+  height: 333px;
   pointer-events: none;
 }
 
 .App-header {
-  background-color: #eeeeee;
+  background-color: black;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -26,12 +27,29 @@
 
 .App-button {
   margin-top: 16px;
-  width: 240px;
+  width: 400px;
   height: 48px;
-  font-size: 24px;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
 }
 
 .App-result {
   margin-top: 24px;
   font-size: 20px;
+}
+
+.description {
+  margin-top: 16px;
+  font-size: 16px;
+}
+
+.error {
+  margin-top: 16px;
+  height: 24px;
+  font-size: 16px;
+  color: indianred;
 }
